@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title><%= title %></title>
+  <link rel='stylesheet' href='/stylesheets/style.css' />
+</head>
+
+<body>
+  <h1><%= title %></h1>
+  <p>Welcome to <%= title %></p>
+  <button onclick="getList()">Get List</button>
+  <button onclick="parseAllList()">Parse All List</button>
+  <button onclick="parseAllPages()">Parse all Pages</button>
+  <button onclick="login()">Login</button>
+  <div class="wapper"></div>
+  <div id="test"></div>
+  <script>
+    let data;
+    let counter = 0;
+    const log = console.log;
+
+    async function getList() {
+      const response = await fetch('/getList');
+      data = await response.json();
+      let allList = data.productInfo.productInfo;
+      addTable(allList);
+
+      //console.log(allList);
+    }
+    async function parsePage(url) {
+      const response = await fetch('/parse-page?url=' + url);
+      return await response.json();
+
+    }
+
+    function addTable(listLength) {
+      //set header of table
+      let table = `
+      <table class="table table-striped" id = "myTable">
+        <thead>
+          <tr>
+            <th scope="col">SKU</th>
+            <th scope="col">Name</th>
+            <th scope="col">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+        `;
+      //create//append rows
+      for (i = 0; i < listLength.length; i++) {
+        //console.log(listLength[i])
+        table = table +
+          `<tr>
+              <td>` + listLength[i].sku + `</td>
+              <td>` + listLength[i].h1 + `</td>
+              <td>` + listLength[i].price + `</td>
+            </tr>`
+      }
+      //close off table
+      table = table +
+        `</tbody>
+          </table>`
+        ;
+      let wrapper = document.querySelector('div');
+      wrapper.innerHTML = table;
+    }
+
+    async function myFetch(url) {
+      const response = await fetch(url);
+      return await response.json();
+    }
+
+    // recurtion 1
+    async function parseAllList() {
+      console.log(counter)
+      const result = await parsePage(data.productInfo.productInfo[counter].link);
+      counter++;
+      console.log(result, 'result')
+      //if (counter < data.productInfo.productInfo.length) await parseAllList();
+      if( counter < 3 ) await parseAllList(); // fake test
+      else counter = 0;
+
+    }
+    async function parseAllPages() {
+      await getList();
+      let productPageCounter = 1;
+      //getListOfPage(productPageCounter); // get all list products on 1 page
+      await parseAllList(); // get all products on 1 page
+      console.log('this is the last el, go to the next page');
+
+      log(await myFetch('/go-to-current-products-page'));
+      const fromServer = await myFetch('/go-to-next-products-page');
+      console.log(fromServer)
+      if(fromServer.message == 'not last page') await parseAllPages();
+
+    }
+    async function getListOfPage(page) {
+      const response = await fetch('/getListOfPage?page=' + page);
+      data = await response.json();
+    }
+
+    async function login() {
+      const response = await fetch('/login', {
+        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+        headers: {
+          'Content-Type': 'application/json',
+          // 'Content-Type': 'application/x-www-form-urlencoded',
+          body: JSON.stringify({ test: 'hello' })
+        }
+      }); //???   
+      const fromServer = await response.json();
+      console.log(fromServer);
+    }
+  </script>
+</body>
+
+</html>
